@@ -1,0 +1,29 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Environment files (contains secrets)
+.env
+*.env
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+ml-service/__pycache__/
+
+# React build folder
+client/build/
+
+# Docker volumes
+mongo-data/
+
+# VS Code settings
+.vscode/
+
+# Mac files
+.DS_Store
+
+# Log files
+*.log
+npm-debug.log*

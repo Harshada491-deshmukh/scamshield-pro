@@ -12,13 +12,12 @@ app.use(cors());
 app.use(express.json());
 
 // ── CONNECT TO MONGODB ──────────────────────────────
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("✅ MongoDB Connected Successfully");
-  })
-  .catch((err) => {
-    console.log("❌ MongoDB Connection Failed:", err.message);
-  });
+const MONGO_URI = process.env.MONGO_URI || 
+                  "mongodb://localhost:27017/scamshield";
+
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.log("❌ MongoDB Error:", err.message));
 
 // ── ROUTES ──────────────────────────────────────────
 // These connect URLs to your route files

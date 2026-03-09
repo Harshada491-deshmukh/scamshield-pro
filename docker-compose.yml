@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+
+  # ── MongoDB Database ──────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: scamshield-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - scamshield-network
+
+  # ── Python AI Service ─────────────────────
+  ml-service:
+    build: ./ml-service
+    container_name: scamshield-ml
+    ports:
+      - "8000:8000"
+    networks:
+      - scamshield-network
+    depends_on:
+      - mongo
+
+  # ── Node.js Backend ───────────────────────
+  backend:
+    build: ./server
+    container_name: scamshield-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/scamshield
+      - ML_SERVICE_URL=http://ml-service:8000
+      - PORT=5000
+    networks:
+      - scamshield-network
+    depends_on:
+      - mongo
+      - ml-service
+
+  # ── React Frontend ────────────────────────
+  frontend:
+    build: ./client
+    container_name: scamshield-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - scamshield-network
+    depends_on:
+      - backend
+
+# ── Shared Network ────────────────────────────
+networks:
+  scamshield-network:
+    driver: bridge
+
+# ── Data Storage ──────────────────────────────
+volumes:
+  mongo-data:

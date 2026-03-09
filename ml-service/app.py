@@ -70,4 +70,4 @@ def test():
 if __name__ == "__main__":
     print("✅ AI Service running on http://localhost:8000")
     print("✅ Test it at http://localhost:8000/test")
-    app.run(port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=False)
