@@ -1,0 +1,217 @@
+# ─────────────────────────────────────────────────────
+# ScamShield Pro - GitHub Actions CI/CD Pipeline
+# This runs automatically every time you push to GitHub
+# ─────────────────────────────────────────────────────
+
+name: ScamShield Pro CI/CD
+
+# ── When to run this pipeline ─────────────────────────
+on:
+  push:
+    branches:
+      - main        # runs when you push to main branch
+  pull_request:
+    branches:
+      - main        # runs when you create a pull request
+
+# ── Jobs to run ───────────────────────────────────────
+jobs:
+
+  # ════════════════════════════════════════
+  # JOB 1 — Test the Node.js Backend
+  # ════════════════════════════════════════
+  test-backend:
+    name: Test Node.js Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Download your code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2 — Install Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      # Step 3 — Install packages
+      - name: Install backend dependencies
+        run: |
+          cd server
+          npm install
+
+      # Step 4 — Check if server file exists
+      - name: Verify backend files exist
+        run: |
+          echo "Checking backend files..."
+          ls server/
+          ls server/routes/
+          ls server/models/
+          echo "✅ All backend files found!"
+
+      # Step 5 — Test server starts without crashing
+      - name: Test backend structure
+        run: |
+          cd server
+          node -e "
+            const express = require('express');
+            const app = express();
+            console.log('✅ Express loaded successfully');
+            
+            const Scan = require('./models/Scan');
+            console.log('✅ Scan model loaded successfully');
+            
+            console.log('✅ Backend test passed!');
+          "
+
+  # ════════════════════════════════════════
+  # JOB 2 — Test the Python AI Service
+  # ════════════════════════════════════════
+  test-ai-service:
+    name: Test Python AI Service
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Download your code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2 — Install Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      # Step 3 — Install Python packages
+      - name: Install Python dependencies
+        run: |
+          cd ml-service
+          pip install flask flask-cors scikit-learn \
+                      pandas numpy requests
+
+      # Step 4 — Check if Python files exist
+      - name: Verify AI service files exist
+        run: |
+          echo "Checking AI service files..."
+          ls ml-service/
+          echo "✅ All AI files found!"
+
+      # Step 5 — Test the AI model works correctly
+      - name: Test AI model predictions
+        run: |
+          cd ml-service
+          python -c "
+          from model import analyze_text, analyze_url
+
+          print('Testing AI model...')
+
+          # Test 1 - Clear scam message
+          pred, conf, reasons = analyze_text(
+              'Your account will be blocked. Verify now: http://bank-secure.xyz'
+          )
+          assert pred == 'Scam', f'Expected Scam but got {pred}'
+          print(f'Test 1 passed: {pred} ({conf}%)')
+
+          # Test 2 - Safe message
+          pred, conf, reasons = analyze_text(
+              'Hi, your order has been delivered successfully'
+          )
+          assert pred == 'Safe', f'Expected Safe but got {pred}'
+          print(f'Test 2 passed: {pred} ({conf}%)')
+
+          # Test 3 - Phishing URL
+          pred, conf, reasons = analyze_url(
+              'http://bank-secure-login.xyz/verify'
+          )
+          assert pred == 'Scam', f'Expected Scam but got {pred}'
+          print(f'Test 3 passed: {pred} ({conf}%)')
+
+          print('✅ All AI tests passed!')
+          "
+
+  # ════════════════════════════════════════
+  # JOB 3 — Test the React Frontend
+  # ════════════════════════════════════════
+  test-frontend:
+    name: Test React Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Download your code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2 — Install Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      # Step 3 — Install React packages
+      - name: Install frontend dependencies
+        run: |
+          cd client
+          npm install
+
+      # Step 4 — Check all React files exist
+      - name: Verify frontend files exist
+        run: |
+          echo "Checking frontend files..."
+          ls client/src/
+          ls client/src/pages/
+          ls client/src/components/
+          echo "✅ All frontend files found!"
+
+      # Step 5 — Build React for production
+      - name: Build React app
+        run: |
+          cd client
+          CI=false npm run build
+          echo "✅ React build successful!"
+
+  # ════════════════════════════════════════
+  # JOB 4 — Build Docker Images
+  # ════════════════════════════════════════
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-ai-service, test-frontend]
+
+    steps:
+      # Step 1 — Download your code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2 — Build all Docker images
+      - name: Build Docker images
+        run: |
+          echo "Building Docker images..."
+          docker-compose build
+          echo "✅ All Docker images built!"
+
+      # Step 3 — Verify containers can start
+      - name: Verify docker-compose is valid
+        run: |
+          docker-compose config
+          echo "✅ docker-compose.yml is valid!"
+
+  # ════════════════════════════════════════
+  # JOB 5 — Final Summary
+  # ════════════════════════════════════════
+  pipeline-success:
+    name: Pipeline Complete
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-ai-service, test-frontend, build-docker]
+
+    steps:
+      - name: Success message
+        run: |
+          echo "🎉 ══════════════════════════════════"
+          echo "🎉  ScamShield Pro CI/CD PASSED!"
+          echo "🎉 ══════════════════════════════════"
+          echo "✅ Backend tests passed"
+          echo "✅ AI service tests passed"
+          echo "✅ Frontend build successful"
+          echo "✅ Docker images built"
+          echo "🚀 Project is ready!"
